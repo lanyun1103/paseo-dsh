@@ -8,9 +8,9 @@ This npm package is the Paseo-side provider plugin. Install it through Paseo's
 own plugin installer:
 
 ```bash
-paseo plugin add npm:paseo-dsh
+paseo plugin add npm:@lanyun1103/paseo-dsh
 # or from a checkout:
-paseo plugin add liuxing7954/paseo-dsh --path paseo-plugin
+paseo plugin add lanyun1103/paseo-dsh --path paseo-plugin
 ```
 
 On load it provisions `$DSH_HOME/profiles/paseo` (the DSH profile it drives),
@@ -21,8 +21,8 @@ profile setup. The only thing left is your model route in
 This package also ships a small CLI for that setup:
 
 ```bash
-npx paseo-dsh doctor   # check CLIs, profile, bridge, model route and credentials
-npx paseo-dsh probe --base-url https://your-gateway/v1 \
+npx @lanyun1103/paseo-dsh doctor   # check CLIs, profile, bridge, model route and credentials
+npx @lanyun1103/paseo-dsh probe --base-url https://your-gateway/v1 \
   --api-key-env YOUR_KEY_ENV --model your-model-id   # discover reasoning levels etc.
 ```
 
@@ -42,7 +42,7 @@ What you get that the ACP boundary can't carry:
   history, and native DSH sessions can be imported from Paseo
 
 Full documentation, the adoption guide, and 20 real defects with their fixes
-live in the main repository: **https://github.com/liuxing7954/paseo-dsh**
+live in the main repository: **https://github.com/lanyun1103/paseo-dsh**
 
 Requires Paseo ≥ 0.9.2 and the official `dsh` on the daemon's `PATH`.
 
@@ -64,9 +64,9 @@ Paseo 的**原生** provider 接入——**不是 ACP**。
 本 npm 包是 Paseo 侧的 provider 插件，用 Paseo 自带的插件安装器安装：
 
 ```bash
-paseo plugin add npm:paseo-dsh
+paseo plugin add npm:@lanyun1103/paseo-dsh
 # 或从仓库：
-paseo plugin add liuxing7954/paseo-dsh --path paseo-plugin
+paseo plugin add lanyun1103/paseo-dsh --path paseo-plugin
 ```
 
 插件**首次加载会自己准备好** `$DSH_HOME/profiles/paseo`（它驱动的 DSH profile），并把内嵌的
@@ -76,8 +76,8 @@ stdio bridge 落盘——不用 clone、不用跑脚本、不用手动配 profil
 本包还带一个小 CLI：
 
 ```bash
-npx paseo-dsh doctor   # 自检：CLI / profile / bridge / 模型路由 / 凭证
-npx paseo-dsh probe --base-url https://your-gateway/v1 \
+npx @lanyun1103/paseo-dsh doctor   # 自检：CLI / profile / bridge / 模型路由 / 凭证
+npx @lanyun1103/paseo-dsh probe --base-url https://your-gateway/v1 \
   --api-key-env YOUR_KEY_ENV --model your-model-id   # 探测端点支持的推理档位等
 ```
 
@@ -96,7 +96,7 @@ ACP 承载不了、而这里都有：
 - **会话恢复与导入**：重开会话会回放历史；并可从 Paseo 导入 DSH 原生会话
 
 完整文档、改造指南、以及 20 个真实缺陷的修复记录都在主仓库：
-**https://github.com/liuxing7954/paseo-dsh**
+**https://github.com/lanyun1103/paseo-dsh**
 
 需要 Paseo ≥ 0.9.2，且 daemon 的 `PATH` 上有官方 `dsh`。
 

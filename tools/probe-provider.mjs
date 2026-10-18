@@ -4,7 +4,7 @@
  *
  * The implementation lives in `paseo-plugin/lib/probe-provider.mjs` so the
  * published `paseo-dsh` CLI and this repo script share one copy. Prefer
- * `npx paseo-dsh probe ...` (no clone needed); this exists for a checkout.
+ * `npx @lanyun1103/paseo-dsh probe ...` (no clone needed); this exists for a checkout.
  *
  * Usage:
  *   node tools/probe-provider.mjs \
