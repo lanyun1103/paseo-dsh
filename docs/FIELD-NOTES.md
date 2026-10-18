@@ -316,13 +316,31 @@ cwd 提示）。
 **验证**：`plugin-check` 用 `title: "check title"` 打开，再从 sessions 列表读回同一条会话的
 `persistence.data.sessionId`，断言 `title` 等于它。
 
+### 23. 重试在时间线上完全不可见
+
+**症状**：模型调用失败重试时界面死着；重试几轮后成功，用户只看到"卡了很久"；彻底失败时
+只弹一条空 `[error]`。
+
+**根因**：`assistant/attempt` 被丢弃。这个事件本身就是"这次尝试没能变成消息"的结算——
+provider 失败或被取消都会写它，而 `AssistantStreamRecord` 里**没有错误变体**，所以历史和
+注释都认为无法区分"失败重试"与"用户取消"，宁可不显示。
+
+**修法**：不猜单次的原因，改数次数。同一个 `turn:step` 出现**第二次** attempt 就是重试的
+证据（一次 attempt 仍然静默，取消不会刷噪音）。之后每次 attempt 用**同一个 item id**
+重发一行 `notification`，Paseo 会在原地更新；该 step 最终产出 `assistant/message` 时，同一
+行改写成 `info`：「Recovered after N attempts」。
+
+**验证**：新增 `harness/timeline-check.cjs`，对合成事件断言五种情形：单次静默、二次出现、
+三次原地更新、成功后改写、无重试时不长行。`plugin-check` 驱动的是活会话，造不出 provider
+失败，所以这项只能靠合成事件钉住。
+
 ---
 
 ## 已知限制（未修，有意为之）
 
 | 项 | 说明 |
 |----|------|
-| `assistant/attempt` 被丢弃 | 该事件承载失败/重试/取消的尝试，所以**重试在界面上不可见**。但 `AssistantStreamRecord` 没有错误变体，无法可靠区分"失败重试"和"用户主动取消"，乱加会在每次取消时刷噪音。 |
+| ~~`assistant/attempt` 被丢弃~~ | 已修，见第 23 条：单次 attempt 仍不显示（可能只是用户取消），但同一步的第二次 attempt 会显示一行「重试中」，成功后改写为「已恢复」。 |
 | 时间线只映射 13 种会话事件里的 4 种 | 其余多数是有意丢弃：`developer/message`、`system/message` 是系统提示，`request/header`、`request/context` 是内部记账。 |
 
 ## 关于"哪条路由能用"
