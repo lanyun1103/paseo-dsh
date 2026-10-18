@@ -148,6 +148,8 @@ export class TimelineBuilder {
   #items = new Map<string, ProviderTimelineItem>();
   #toolNames = new Map<string, string>();
   #toolInputs = new Map<string, Record<string, unknown>>();
+  /** Settled attempts per `turn:step`; the count is the only retry evidence. */
+  #attempts = new Map<string, number>();
 
   /**
    * Fold one DSH session event into zero or more complete Paseo item snapshots.
@@ -160,6 +162,8 @@ export class TimelineBuilder {
     switch (event.type) {
       case "assistant/message":
         return this.#assistantMessage(data);
+      case "assistant/attempt":
+        return this.#attempt(data);
       case "tool/call":
         return this.#toolCall(data);
       case "tool/result":
@@ -220,7 +224,41 @@ export class TimelineBuilder {
       this.#toolInputs.set(callId, input);
       out.push(...this.#emitToolCall(callId, name, input, "running"));
     }
+    // A step that failed at least once and now produced a message recovered.
+    const attempts = this.#attempts.get(`${turn}:${step}`) ?? 0;
+    if (attempts >= 2) {
+      out.push(
+        ...this.#put({
+          type: "notification",
+          id: `retry:${turn}:${step}`,
+          level: "info",
+          message: `Recovered after ${attempts} attempts`,
+        }),
+      );
+    }
     return out;
+  }
+
+  /**
+   * A settled `assistant/attempt` never became a message: the provider failed or
+   * the turn was cancelled, and the record carries no error variant to tell them
+   * apart. One attempt is therefore shown as nothing (a cancel must stay quiet);
+   * the second attempt for the same step is proof of a retry, which is the row
+   * the timeline was missing. Re-emitting the same id updates it in place.
+   */
+  #attempt(data: Record<string, unknown>): ProviderTimelineItem[] {
+    const turn = typeof data.turn === "number" ? data.turn : 0;
+    const step = typeof data.step === "number" ? data.step : 0;
+    const key = `${turn}:${step}`;
+    const count = (this.#attempts.get(key) ?? 0) + 1;
+    this.#attempts.set(key, count);
+    if (count < 2) return [];
+    return this.#put({
+      type: "notification",
+      id: `retry:${key}`,
+      level: "warning",
+      message: `Model call failed, retrying (attempt ${count})`,
+    });
   }
 
   #toolCall(data: Record<string, unknown>): ProviderTimelineItem[] {
