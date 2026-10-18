@@ -113,6 +113,17 @@ const check = (name, pass, detail) => {
     `${catalogEvent.catalog?.models?.length ?? 0} model(s)`,
   );
 
+  // The composer's context meter needs a denominator, which only the runtime's
+  // own model declaration provides. A dropped field does not error; the meter
+  // just stays blank, so assert it travelled with the catalog.
+  const catalogModels = catalogEvent.catalog?.models ?? [];
+  const withContextWindow = catalogModels.filter((model) => typeof model.contextWindowMaxTokens === "number");
+  check(
+    "catalog models carry the declared context window",
+    withContextWindow.length > 0,
+    `${withContextWindow.length}/${catalogModels.length} model(s) declared a window`,
+  );
+
   await conn.send({
     type: "session.open",
     sessionId: `check-${Date.now()}`,
@@ -244,6 +255,21 @@ const check = (name, pass, detail) => {
       "usage carries a turnId",
       typeof withNumbers[0].turnId === "string" && withNumbers[0].turnId !== "",
       `turnId=${withNumbers[0].turnId}`,
+    );
+    // `contextWindowUsedTokens` is the prompt the step actually saw, so the
+    // cache-hit bucket has to be folded back in; reporting only the uncached
+    // part leaves the meter pinned near zero on a long conversation.
+    const usageWindow = withNumbers[0].usage;
+    const expectedWindowUsed = (usageWindow.inputTokens ?? 0) + (usageWindow.cachedInputTokens ?? 0);
+    check(
+      "usage carries contextWindowUsedTokens (input + cache reads)",
+      usageWindow.contextWindowUsedTokens === expectedWindowUsed,
+      `used=${usageWindow.contextWindowUsedTokens} expected=${expectedWindowUsed}`,
+    );
+    check(
+      "usage carries contextWindowMaxTokens",
+      typeof usageWindow.contextWindowMaxTokens === "number" && usageWindow.contextWindowMaxTokens > 0,
+      `max=${usageWindow.contextWindowMaxTokens}`,
     );
   }
 

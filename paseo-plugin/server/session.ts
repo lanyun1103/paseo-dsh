@@ -202,6 +202,16 @@ export class DshSession {
   }
 
   /**
+   * The routed model's declared context capacity, for the composer's meter.
+   * Absent when the profile's route declares none; the meter then shows the used
+   * count without inventing a denominator.
+   */
+  #contextWindowMaxTokens(): number | undefined {
+    const id = `${this.#route.provider}/${this.#route.model}`;
+    return this.#options.models.find((entry) => entry.id === id)?.contextWindowMaxTokens;
+  }
+
+  /**
    * Publish the session's `/` menu: DSH's registered human commands plus every
    * user-invocable skill.
    *
@@ -517,7 +527,7 @@ export class DshSession {
           type: "session.usage",
           sessionId: this.id,
           ...(this.#turnId === null ? {} : { turnId: this.#turnId }),
-          usage: providerUsage(data.usage),
+          usage: providerUsage(data.usage, this.#contextWindowMaxTokens()),
         });
       }
     }
@@ -642,12 +652,25 @@ function toDshContent(block: ProviderContent): Record<string, unknown> {
  *
  * DSH attaches usage to the assistant message because it keeps no separate usage
  * record, so this is the only place the numbers exist to forward.
+ *
+ * `contextWindowUsedTokens` is the prompt the model just saw, which is not the
+ * turn's spend: DSH reports the cache-hit part as its own bucket, so the two are
+ * added back together. Reporting only `inputTokens` there showed a meter stuck
+ * near zero on a conversation that was mostly cache reads.
  */
-function providerUsage(raw: Record<string, unknown>): ProviderUsage {
+function providerUsage(raw: Record<string, unknown>, contextWindowMaxTokens?: number): ProviderUsage {
+  const inputTokens = typeof raw.inputTokens === "number" ? raw.inputTokens : undefined;
+  const cacheReadTokens = typeof raw.cacheReadTokens === "number" ? raw.cacheReadTokens : undefined;
+  const contextWindowUsedTokens =
+    inputTokens === undefined && cacheReadTokens === undefined
+      ? undefined
+      : (inputTokens ?? 0) + (cacheReadTokens ?? 0);
   return {
-    ...(typeof raw.inputTokens === "number" ? { inputTokens: raw.inputTokens } : {}),
-    ...(typeof raw.cacheReadTokens === "number" ? { cachedInputTokens: raw.cacheReadTokens } : {}),
+    ...(inputTokens === undefined ? {} : { inputTokens }),
+    ...(cacheReadTokens === undefined ? {} : { cachedInputTokens: cacheReadTokens }),
     ...(typeof raw.outputTokens === "number" ? { outputTokens: raw.outputTokens } : {}),
+    ...(contextWindowUsedTokens === undefined ? {} : { contextWindowUsedTokens }),
+    ...(contextWindowMaxTokens === undefined ? {} : { contextWindowMaxTokens }),
   };
 }
 

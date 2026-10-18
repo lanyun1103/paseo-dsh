@@ -52,6 +52,8 @@ export interface DshCatalogModel {
   id: string;
   name: string;
   description?: string;
+  /** Provider-declared context capacity; absent when the route declares none. */
+  contextWindow?: number;
   reasoning?: {
     defaultEffort?: string;
     efforts: Array<{ id: string; name: string; description?: string }>;

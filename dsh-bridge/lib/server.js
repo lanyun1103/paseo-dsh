@@ -594,8 +594,13 @@ export class PaseoHarnessServer {
         try {
           for (const model of await llm.listModels(provider.id)) {
             let reasoning;
+            // The model's declared capacity, forwarded so Paseo's composer meter
+            // has a denominator. It is provider-owned, never assumed here: a
+            // route that declares no context reports none.
+            let contextWindow;
             try {
               const info = await llm.resolveModelInfo(provider.id, model.id);
+              contextWindow = info?.context?.contextWindow;
               if (info?.reasoning !== undefined) {
                 reasoning = {
                   ...(info.reasoning.defaultEffort === undefined
@@ -617,6 +622,7 @@ export class PaseoHarnessServer {
               name: model.name,
               ...(model.description === undefined ? {} : { description: model.description }),
               ...(reasoning === undefined ? {} : { reasoning }),
+              ...(contextWindow === undefined ? {} : { contextWindow }),
             });
           }
         } catch {

@@ -152,6 +152,9 @@ function toDisplayCatalog(raw: DshCatalog): DisplayCatalog {
       label: model.name,
       description: providerName.get(model.provider) ?? model.provider,
       ...(model.description === undefined ? {} : {}),
+      // Only what the route declares: an unknown window stays absent rather than
+      // borrowing another model's capacity, which would misreport every percent.
+      ...(model.contextWindow === undefined ? {} : { contextWindowMaxTokens: model.contextWindow }),
       ...(model.reasoning?.defaultEffort === undefined || thinkingOptions.length === 0
         ? {}
         : {

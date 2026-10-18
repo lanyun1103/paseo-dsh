@@ -274,6 +274,27 @@ cwd 提示）。
 > 提示词变量、插件 schema、服务名、异步就绪时机这类"软契约"让功能静默失效。升版后必须重跑
 > `plugin-check`，而不是只看 `doctor`（`doctor` 只查安装完整性，查不出回合层失败和空目录）。
 
+### 21. 上下文读数没有分母（分子在事件里，分母在目录里）
+
+**症状**：Paseo 的 composer 里看不到上下文占用；而 DSH 自己的投影里明明写着
+`contextWindow: 1000000`、`pressureTokens` 也在涨。
+
+**根因**：两层各少一半。`session.usage` 只转发了 DSH 的三个分桶
+（`inputTokens` / `cacheReadTokens` / `outputTokens`），没填 Paseo 的
+`contextWindowUsedTokens` 与 `contextWindowMaxTokens`；而分母只存在于 provider 声明的模型
+能力里，`paseo/catalog` 当时没有把它带出来。
+
+**修法**：
+
+- 桥：catalog 的模型条目附带 `contextWindow`，取自
+  `llm.resolveModelInfo().context.contextWindow`；provider 没声明就不带该字段。
+- 插件：`contextWindowUsedTokens = inputTokens + cacheReadTokens`——两者相加才是模型这一步
+  看到的 prompt（实测等于 DSH 的 `pressureTokens`），只看未命中缓存的那部分会让读数长期贴在
+  地板；再把目录里的窗口作为 `contextWindowMaxTokens` 一起发。
+
+**教训**：这类"用量看板"的字段天然横跨两层——**分子在事件流里，分母在模型目录里**。只补一层，
+界面不会报错，只会永远空着。
+
 ---
 
 ## 已知限制（未修，有意为之）
