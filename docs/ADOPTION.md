@@ -92,7 +92,7 @@ Paseo 的模型选择器、思考档位选择器、图片上传按钮**全部由
 是同一个实现的瘦启动器）：
 
 ```bash
-npx paseo-dsh probe \
+npx @lanyun1103/paseo-dsh probe \
   --base-url https://your-gateway/v1 \
   --api-key-env YOUR_API_KEY \
   --model your-model-id
@@ -278,7 +278,7 @@ if (provider === undefined || model === undefined) {
 这个项目把"安装是否完整"的自检做成了一条命令，先跑它，能省一堆瞎猜：
 
 ```bash
-npx paseo-dsh doctor
+npx @lanyun1103/paseo-dsh doctor
 ```
 
 只读不改：查 `dsh`/`paseo` 版本、插件是否已把 DSH profile 建好、bridge 是否落地、

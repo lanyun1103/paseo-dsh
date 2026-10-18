@@ -16,8 +16,15 @@ export default function contribute(server: PluginServerContext) {
     const provisioned = ensurePaseoProfile();
     process.stderr.write(
       `[dsh-paseo] DSH profile "${provisioned.profile}" ready at ${provisioned.dir}`
-        + ` (${provisioned.bridgeFiles} bridge files${provisioned.patchCreated ? ", starter patch written" : ""})\n`,
+        + ` (${provisioned.bridgeFiles} bridge files, manifest ${provisioned.manifest}`
+        + `${provisioned.patchCreated ? ", starter patch written" : ""})\n`,
     );
+    if (provisioned.manifest === "unreadable") {
+      process.stderr.write(
+        `[dsh-paseo] ${provisioned.dir}/package.json is not valid JSON, so the bridge dependency`
+          + " could not be declared; `dsh plugin add` may prune the bridge until it is fixed.\n",
+      );
+    }
   } catch (error) {
     process.stderr.write(
       `[dsh-paseo] could not provision the DSH profile: ${error instanceof Error ? error.message : String(error)}\n`,

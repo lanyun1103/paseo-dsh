@@ -115,6 +115,26 @@ export function runDoctor() {
     report("fail", "bridge bundle missing", `expected ${bridgeEntry}; restart the daemon to let the plugin re-provision`);
   }
 
+  // The declaration matters as much as the files: without it pnpm treats the
+  // bridge as extraneous, moves it to node_modules/.ignored on the next
+  // `dsh plugin add`, and dsh then silently skips the bundle.
+  let bridgeDeclared = false;
+  try {
+    const manifest = JSON.parse(readFileSync(join(profileDir, "package.json"), "utf8"));
+    bridgeDeclared = typeof manifest?.dependencies?.["dsh-paseo-bridge"] === "string";
+  } catch {
+    bridgeDeclared = false;
+  }
+  if (bridgeDeclared) {
+    report("ok", "bridge declared as a dependency", "pnpm will not treat it as extraneous");
+  } else {
+    report(
+      "warn",
+      "bridge not declared in package.json",
+      'missing "dsh-paseo-bridge": "file:./vendor/dsh-paseo-bridge" — `dsh plugin add` may prune the bridge; restart the daemon to re-provision it',
+    );
+  }
+
   // 3. model route
   const patchPath = join(profileDir, "cordis.patch.yml");
   if (!existsSync(patchPath)) {

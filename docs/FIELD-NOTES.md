@@ -161,7 +161,7 @@ provider 级默认值改成**所有模型都支持的交集**而不是并集。
 **根因**：DSH 对 `xhigh`/`max` 的处理和五个基础档位不同——**缺键即视为不支持**，
 而不是取默认值。
 
-**修法**：显式列出 `max: max`。这一条现在由 `npx paseo-dsh probe`（仓库里是
+**修法**：显式列出 `max: max`。这一条现在由 `npx @lanyun1103/paseo-dsh probe`（仓库里是
 `tools/probe-provider.mjs`，同一实现）自动覆盖。
 
 ---
@@ -336,6 +336,47 @@ provider 失败或被取消都会写它，而 `AssistantStreamRecord` 里**没�
 
 ---
 
+### 24. 装过别的插件后，桥被 pnpm 清掉，dsh 静默跳过它
+
+**症状**：在 `~/.dsh/profiles/paseo` 里跑过一次 `dsh plugin add <别的插件>` 之后，Paseo 能连上
+但会话没有反应。dsh 只打一行：
+
+```
+dsh: skipping profile bundle "dsh-paseo-bridge": cannot resolve "dsh-paseo-bridge" ...
+```
+
+退出码 **0**，没有报错，也没有告警升级。
+
+**根因**：桥是直接写进 `node_modules/dsh-paseo-bridge/` 的裸目录，`package.json` 里没有它。
+对 pnpm 来说这是 extraneous —— 下一次任何 install 都会把它挪进 `node_modules/.ignored/`。
+dsh 解析 bundle 失败后按"跳过并继续"处理，于是运行的是一个没有 stdio 桥的 profile：
+Paseo 侧的症状是"不动"，而不是"报错"。
+
+这是第四轮那类**静默降级**的又一例：把"配置里写了但装不上"当成"没有这个配置"。
+
+**修法**：把桥从"裸目录"改成**声明式依赖**，三件套各司其职：
+
+| 路径 | 角色 |
+|---|---|
+| `profiles/<p>/vendor/dsh-paseo-bridge/` | 真身，每次加载从内嵌资产重写 |
+| `profiles/<p>/package.json` → `"file:./vendor/dsh-paseo-bridge"` | 声明，pnpm 不再当 extraneous |
+| `profiles/<p>/node_modules/dsh-paseo-bridge/` | 投影，pnpm 没跑过时 dsh 也能解析 |
+
+`package.json` 只做**增量合并**：补 `dependencies` 和 `dsh.profile.bundles`，其余键一个不动；
+解析失败就返回 `unreadable` 并在 stderr 明说，绝不重写一个自己没读懂的文件。
+
+**验证**（对编译产物跑的 7 组，`DSH_HOME` 指向临时目录）：
+
+1. 全新 profile → `manifest=created`，三处产物齐全
+2. 已有自定义依赖 → `updated`，`dsh-permission-rules` 保留，桥追加进 bundles
+3. 再跑一次 → `unchanged`，文件哈希不变（不产生无谓写入）
+4. `package.json` 是坏 JSON → `unreadable`，文件原样不动，桥照写
+5. `install.sh` 的软链 → 被换成真目录，**链接目标没被递归删掉**
+6. 之后跑 `pnpm install` → 桥还在，`.ignored` 不再生成
+7. 旧 profile 里的绝对 `file:/Users/...` → 改写成相对的 `file:./vendor/...`
+
+---
+
 ## 已知限制（未修，有意为之）
 
 | 项 | 说明 |
@@ -347,4 +388,4 @@ provider 失败或被取消都会写它，而 `AssistantStreamRecord` 里**没�
 
 这份记录里刻意不提任何具体的 provider、模型或端点——**你的路由和模型完全由你的
 profile 决定**。同一个缺陷在不同人那里会表现成不一样的症状，所以照抄别人的路由表
-没有意义，用 `npx paseo-dsh probe` 测自己的才是正路。
+没有意义，用 `npx @lanyun1103/paseo-dsh probe` 测自己的才是正路。

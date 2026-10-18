@@ -6,8 +6,8 @@ DSH 侧是一个 profile bundle。
 
 > 这不是 ACP 接入。ACP 缺三样东西，而 Paseo 的原生 provider 协议恰好都有。
 
-**一行安装：** `paseo plugin add npm:paseo-dsh` · npm 包
-[npmjs.com/package/paseo-dsh](https://www.npmjs.com/package/paseo-dsh) · 装完只差
+**一行安装：** `paseo plugin add npm:@lanyun1103/paseo-dsh` · npm 包
+[npmjs.com/package/@lanyun1103/paseo-dsh](https://www.npmjs.com/package/@lanyun1103/paseo-dsh) · 装完只差
 [填模型路由](#安装推荐一行)，详见下方。
 
 | 能力 | ACP 接入 | 本项目 |
@@ -34,7 +34,7 @@ DSH 侧是一个 profile bundle。
 ````text
 你是一个部署助手，帮我把这台机器上的 Paseo 接上 DeepSeek Harness（DSH）。
 
-仓库：https://github.com/liuxing7954/paseo-dsh
+仓库：https://github.com/lanyun1103/paseo-dsh
 先完整读一遍 docs/ADOPTION.md 再动手。不要凭猜测改任何文件。
 
 ■ 第一步：检查前提
@@ -53,7 +53,7 @@ DSH 侧是一个 profile bundle。
 不要把 key 写进任何会被提交的文件，也不要在终端回显它。
 
 ■ 第三步：探测模型能力（关键，不许跳过）
-  npx paseo-dsh probe --base-url <端点> --api-key-env <变量名> --model <模型id>
+  npx @lanyun1103/paseo-dsh probe --base-url <端点> --api-key-env <变量名> --model <模型id>
 它输出的 YAML 片段【原样采用】。它会顺便告诉你两个必须处理的坑：
   - 如果 developer 角色被拒 -> 配置里必须有 compat.supportsDeveloperRole: false
   - reasoningEfforts 里的 off 必须留空（不写值）
@@ -63,7 +63,7 @@ DSH 侧是一个 profile bundle。
 ■ 第四步：安装
 把 Paseo 会打印的那段「Plugins are trusted, unsandboxed code...」安全提示
 【原文转述给我】，并明确问我是否继续。得到我同意之后再装：
-  paseo plugin add npm:paseo-dsh
+  paseo plugin add npm:@lanyun1103/paseo-dsh
 （插件首次加载会自己准备好 DSH profile，不需要跑任何脚本。）
 装完重启 Paseo daemon。
 
@@ -73,7 +73,7 @@ DSH 侧是一个 profile bundle。
 如果那个文件里已经有内容，只做补充，不要覆盖。
 
 ■ 第六步：验证（不许跳）
-  npx paseo-dsh doctor
+  npx @lanyun1103/paseo-dsh doctor
 确认全绿（dsh/paseo 版本、profile、bridge、路由、key）。有问题就修，修完再跑一次。
 然后重启 Paseo daemon。
 
@@ -91,7 +91,7 @@ DSH 侧是一个 profile bundle。
 用 Paseo 自己的插件安装器：
 
 ```bash
-paseo plugin add npm:paseo-dsh
+paseo plugin add npm:@lanyun1103/paseo-dsh
 paseo plugin ls          # 确认 dsh-paseo 已装
 ```
 
@@ -150,7 +150,7 @@ refs:
 ### c) 自检 + 重启
 
 ```bash
-npx paseo-dsh doctor
+npx @lanyun1103/paseo-dsh doctor
 ```
 
 它会检查 `dsh`/`paseo` 版本、profile 是否就绪、bridge 是否落地、路由是否填好、
@@ -162,7 +162,7 @@ npx paseo-dsh doctor
 > 它会直接打过去、把上面 a) 那段填好吐给你（同样不需要 clone）：
 >
 > ```bash
-> npx paseo-dsh probe \
+> npx @lanyun1103/paseo-dsh probe \
 >   --base-url https://your-gateway/v1 \
 >   --api-key-env MY_GATEWAY_API_KEY \
 >   --model your-model-id
@@ -173,19 +173,20 @@ npx paseo-dsh doctor
 
 **完整走查与踩坑清单见 [docs/ADOPTION.md](docs/ADOPTION.md)。**
 
-相关地址：npm 包 <https://www.npmjs.com/package/paseo-dsh> · Paseo 社区目录
+相关地址：npm 包 <https://www.npmjs.com/package/@lanyun1103/paseo-dsh> · Paseo 社区目录
 <https://paseo.cafe/plugins/dsh-paseo> · 讨论帖
 <https://github.com/getpaseo/paseo/discussions/6375>
 
 ## 本地开发 / 离线安装
 
 改本仓库代码时，用 `install.sh` 把 checkout 作为**目录源**接入：它会建好 profile、
-把 `dsh-bridge` 链进 profile，并替你注册插件。之后 `git pull` + 重启 daemon 即生效。
+把 `dsh-bridge` 复制进 profile 的 `vendor/` 并在 `package.json` 里声明成 `file:` 依赖，
+再替你注册插件。之后 `git pull` + 重启 daemon 即生效。
 
 ```bash
-git clone https://github.com/liuxing7954/paseo-dsh && cd paseo-dsh
+git clone https://github.com/lanyun1103/paseo-dsh && cd paseo-dsh
 ./install.sh --check     # 先看前提条件，不做改动
-./install.sh             # 创建 profile + 链接 bridge + 注册插件
+./install.sh             # 创建 profile + 放置 bridge + 注册插件
 ```
 
 > 开发时改了 `dsh-bridge/`，记得跑 `node paseo-plugin/scripts/generate-bridge-assets.mjs`
@@ -209,10 +210,10 @@ paseo-dsh/
 │   │   ├── session.ts   #   单会话：提问→卡片、计划、思考档位、用量
 │   │   ├── dsh-process.ts # 一个会话一个 dsh 子进程
 │   │   ├── timeline.ts  #   DSH 会话事件 → Paseo 时间线
-│   │   ├── bootstrap.ts #   自举：写 profile 文件 + 把内嵌 bridge 落盘
+│   │   ├── bootstrap.ts #   自举：写 profile 文件，把 bridge 落到 vendor/ 并声明依赖
 │   │   └── bridge-assets.ts # 生成物：bridge 的 base64 内嵌副本
 │   ├── lib/             #   doctor（自检）/ probe（能力探测）
-│   └── bin/paseo-dsh.mjs#   npx paseo-dsh {doctor|probe}
+│   └── bin/paseo-dsh.mjs#   npx @lanyun1103/paseo-dsh {doctor|probe}
 ├── tools/               # 探测工具的瘦启动器（实现在 paseo-plugin/lib 里）
 ├── templates/           # profile 配置模板（含必踩的坑的注释）
 ├── harness/             # 独立探针，不依赖 Paseo 即可验证桥接与插件
@@ -245,8 +246,8 @@ JSON-RPC 通信。会话之间进程隔离，一个崩了不会拖垮 daemon。
 **先跑随包 CLI 自检**（只读，不改任何东西）：
 
 ```bash
-npx paseo-dsh doctor          # 安装完整性：CLI/版本/profile/bridge/路由/key
-npx paseo-dsh probe --base-url <端点> --api-key-env <变量名> --model <模型id>   # 端点能力
+npx @lanyun1103/paseo-dsh doctor          # 安装完整性：CLI/版本/profile/bridge/路由/key
+npx @lanyun1103/paseo-dsh probe --base-url <端点> --api-key-env <变量名> --model <模型id>   # 端点能力
 ```
 
 **再对协议层做断言**（界面不可信，事件流才可信）：
@@ -352,7 +353,7 @@ patch 位是插件自己的发布计数。装的时候挑与 daemon 上 `dsh` �
 
 用的时候卡住了、发现文档写错了、或者你用它接上了别的运行时——都欢迎直接发邮件：
 
-**jixy · [467677527@qq.com](mailto:467677527@qq.com)**
+**lanyun1103 · [4737557@qq.com](mailto:4737557@qq.com)**
 
 提 issue 也行，但邮件我回得更快。
 

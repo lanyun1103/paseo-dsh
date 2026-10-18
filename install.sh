@@ -116,6 +116,9 @@ else
         "dsh-paseo-bridge"
       ]
     }
+  },
+  "dependencies": {
+    "dsh-paseo-bridge": "file:./vendor/dsh-paseo-bridge"
   }
 }
 EOF
@@ -147,10 +150,21 @@ EOF
   say "wrote pnpm-workspace.yaml"
 fi
 
+# The bridge is a declared dependency (file:./vendor/...), not a bare
+# node_modules directory: pnpm treats an undeclared directory as extraneous and
+# moves it to node_modules/.ignored on the next `dsh plugin add`, after which dsh
+# silently skips the bundle. The node_modules entry below is only a projection so
+# the profile resolves before pnpm has ever run; the plugin rewrites it on load.
+mkdir -p "$PROFILE_DIR/vendor"
+rm -rf "$PROFILE_DIR/vendor/dsh-paseo-bridge"
+cp -R "$REPO/dsh-bridge" "$PROFILE_DIR/vendor/dsh-paseo-bridge"
+say "copied dsh-bridge -> vendor/dsh-paseo-bridge"
+
 mkdir -p "$PROFILE_DIR/node_modules"
 LINK="$PROFILE_DIR/node_modules/dsh-paseo-bridge"
-ln -sfn "$REPO/dsh-bridge" "$LINK"
-say "linked node_modules/dsh-paseo-bridge -> $REPO/dsh-bridge"
+rm -rf "$LINK"
+ln -sfn "../vendor/dsh-paseo-bridge" "$LINK"
+say "linked node_modules/dsh-paseo-bridge -> ../vendor/dsh-paseo-bridge"
 
 # The model route is the one part that differs per person, so an existing file
 # is never touched. A fresh one gets a template with nothing configured.
@@ -197,7 +211,7 @@ cat <<EOF
            --model <your-model-id>
 
     2. Self-check the install:
-         npx paseo-dsh doctor
+         npx @lanyun1103/paseo-dsh doctor
 
     3. Restart the Paseo daemon so it loads the plugin and the new config.
 
