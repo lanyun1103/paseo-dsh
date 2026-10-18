@@ -299,6 +299,18 @@ export class DshProcess {
     return result.sessions ?? [];
   }
 
+  /**
+   * Pin this session's title to Paseo's agent name.
+   *
+   * DSH otherwise derives the title from the first user message, and on an agent
+   * continued from history that message is the `<chat-history-summary>` header —
+   * the reason `dsh web` lists such sessions as "chat-summary". A user-sourced
+   * rename supersedes that derivation for good.
+   */
+  async setTitle(title: string): Promise<void> {
+    await this.#request("paseo/title", { sessionId: this.#options.sessionId, title }, 15000);
+  }
+
   /** Read this session's stored event log, for replaying into a timeline. */
   async history(): Promise<Array<{ type: string; seq?: number; time?: number; data: unknown }>> {
     const result = (await this.#request(

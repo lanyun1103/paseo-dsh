@@ -127,7 +127,8 @@ const check = (name, pass, detail) => {
   await conn.send({
     type: "session.open",
     sessionId: `check-${Date.now()}`,
-    config: { cwd: process.cwd(), mode: "build" },
+    // Paseo always sends the agent's name; the plugin pins it as the DSH title.
+    config: { cwd: process.cwd(), mode: "build", title: "check title" },
   });
   const ready = await until((e) => e.type === "session.ready", "session.ready");
   const sessionId = ready.sessionId;
@@ -380,6 +381,19 @@ const check = (name, pass, detail) => {
     "sessions input returns a list (import source)",
     Array.isArray(sessionsEvent.sessions),
     `${(sessionsEvent.sessions ?? []).length} session(s), first has persistence=${sessionsEvent.sessions?.[0]?.persistence !== undefined}`,
+  );
+  // The title is what `dsh web` lists. Without pinning, DSH derives one from the
+  // first user message, so a continued agent shows its `<chat-history-summary>`
+  // header instead of the name the user sees in Paseo.
+  const listedSelf = (sessionsEvent.sessions ?? []).find(
+    (entry) => entry.persistence?.data?.sessionId === sessionId,
+  );
+  check(
+    "opened session's title is pinned to Paseo's name",
+    listedSelf?.title === "check title",
+    listedSelf === undefined
+      ? `opened session missing from the list: ${JSON.stringify((sessionsEvent.sessions ?? []).slice(0, 3))}`
+      : `title=${JSON.stringify(listedSelf.title)}`,
   );
 
   // 5. reopening with history:"replay" replays the conversation. Close first so

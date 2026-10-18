@@ -212,6 +212,14 @@ export class DshSession {
   }
 
   /**
+   * Pin the session title to Paseo's agent name, so DSH's own surfaces (`dsh web`)
+   * show the same name instead of deriving one from the first user message.
+   */
+  async setTitle(title: string): Promise<void> {
+    await this.#require().setTitle(title);
+  }
+
+  /**
    * Publish the session's `/` menu: DSH's registered human commands plus every
    * user-invocable skill.
    *

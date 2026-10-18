@@ -389,6 +389,21 @@ class DshConnection implements ProviderConnection {
       }
     }
 
+    // Paseo already knows the agent's name; pinning it here stops DSH from
+    // deriving one from the first user message — on a continued agent that
+    // message is the `<chat-history-summary>` header, which is what `dsh web`
+    // lists as "chat-summary". This must run after `loadCommands`, which is what
+    // materializes the DSH session; a rejected title is cosmetic, so it logs
+    // rather than failing the open.
+    const title = config.title?.trim();
+    if (title !== undefined && title !== "") {
+      try {
+        await session.setTitle(title);
+      } catch (error) {
+        process.stderr.write(`[${PROVIDER_ID}] title "${title}" rejected: ${messageOf(error)}\n`);
+      }
+    }
+
     // Paseo asks for `replay` when it reopens a session (restart or import).
     // DSH's resume restores context but re-emits no events, so replay the stored
     // conversation into the timeline or the reopened session shows as empty.

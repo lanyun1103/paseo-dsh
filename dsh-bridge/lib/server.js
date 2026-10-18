@@ -703,6 +703,23 @@ export class PaseoHarnessServer {
     return {};
   }
 
+  /**
+   * Pin a live session's title to the name Paseo already shows.
+   *
+   * Without this DSH derives the title from the first user message. On an agent
+   * continued from history that message is the `<chat-history-summary>` header,
+   * which is exactly what `dsh web` then lists. A `user`-sourced rename
+   * supersedes the automatic generation for good, so the two surfaces agree.
+   */
+  async setTitle(params = {}) {
+    const rec = this.sessions.get(params.sessionId);
+    if (rec === undefined) throw new Error(`unknown or not-yet-created session: ${params.sessionId}`);
+    const service = this.ctx.get('sessionTitle');
+    if (service === undefined) throw new Error('session-title service is not mounted in this profile');
+    const snapshot = service.rename(rec.handle.agent.session, params.title ?? '');
+    return { title: typeof snapshot?.title === 'string' ? snapshot.title : null };
+  }
+
   /** Dispatch one incoming JSON-RPC request to its typed handler. */
   async handleRequest(method, params) {
     switch (method) {
@@ -724,6 +741,8 @@ export class PaseoHarnessServer {
         return this.presets(params);
       case 'paseo/sessions':
         return this.listSessions(params);
+      case 'paseo/title':
+        return this.setTitle(params);
       case 'paseo/history':
         return this.history(params);
       case 'paseo/plan/get':
