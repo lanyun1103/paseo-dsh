@@ -295,6 +295,27 @@ cwd 提示）。
 **教训**：这类"用量看板"的字段天然横跨两层——**分子在事件流里，分母在模型目录里**。只补一层，
 界面不会报错，只会永远空着。
 
+### 22. `dsh web` 里的会话名是「未命名」或 `chat-summary`
+
+**症状**：同一个会话，Paseo 里叫「现在呢」，`dsh web` 里要么空白，要么显示
+`<chat-history-summary> Chat history from…`。
+
+**根因**：Paseo 的 agent 名（`ProviderSessionConfig.title`）从来没传给 DSH，0 处引用。DSH 于是
+自己从**第一条 user message** 推标题；而 Paseo 续接一个 agent 时，第一条消息正是
+`<chat-history-summary>` 交接摘要，截断后就长成了 `chat-summary`。
+
+**修法**：DSH 有日志级的 `sessionTitle.rename(session, title)`，写入 `session/title` 事件并
+标记 `source: user`，会**永久压掉**自动生成。桥加 `paseo/title`，插件在 `session.open` 时把
+`config.title` 传过去。
+
+**坑（这次踩到了）**：`rename` 要求 session 在 `ctx.sessions` 里是活的，而 DSH 会话是
+**懒创建**的——`session.open` 之后它还不在。第一次实现把标题放在 `await session.open()` 后面，
+报 `unknown or not-yet-created session`。必须等到 `loadCommands()`（它会 `getOrCreateSession`）
+之后再改名，而且失败只能记日志：标题是装饰，不该拖垮 open。
+
+**验证**：`plugin-check` 用 `title: "check title"` 打开，再从 sessions 列表读回同一条会话的
+`persistence.data.sessionId`，断言 `title` 等于它。
+
 ---
 
 ## 已知限制（未修，有意为之）
